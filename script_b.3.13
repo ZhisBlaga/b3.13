@@ -31,46 +31,53 @@ class Tag:
         attrs = []
 
         for attribute, value in self.attributes.items():
-            attrs.append('%s="%s"' % (attribute, value))
+            attrs.append(' %s="%s"' % (attribute, value))
         attrs = " ".join(attrs)
 
         if self.is_single:
-            return "<{tag} {attrs}>{text}\n".format(tag=self.tag, attrs=attrs, text=self.text)
+            return "\n  <{tag}{attrs}>{text}".format(tag=self.tag, attrs=attrs, text=self.text)
 
 
 
         if self.children:
-            opening = "<{tag} {attrs}>".format(tag=self.tag, attrs=attrs)
+            opening = "\n  <{tag}{attrs}>".format(tag=self.tag, attrs=attrs)
             internal = "%s" % self.text
             for child in self.children:
                 internal += child
-            ending = "</%s>\n" % self.tag
+            ending = "</%s>" % self.tag
             return opening + internal + ending
         else:
-            return "<{tag} {attrs}>{text}</{tag}>\n".format(tag=self.tag, attrs=attrs, text=self.text)
+            return "\n  <{tag}{attrs}>{text}</{tag}>".format(tag=self.tag, attrs=attrs, text=self.text)
 
-class HTML:
+
+class TopLevelTag(Tag):
+
+    def __str__(self):
+        if self.children:
+            opening = "<{tag}>".format(tag=self.tag)
+            internal = "    %s" % self.text
+            for child in self.children:
+                internal += child
+            ending = "\n</%s>" % self.tag
+            return opening + internal + ending+'\n'
+        else:
+            return "  <{tag}>{text}</{tag}>".format(tag=self.tag, text=self.text)
+
+
+class HTML(TopLevelTag):
     def __init__(self, output=None):
         self.output = output
         self.tag = 'html'
-        self.text =''
         self.children = []
-
-    def __enter__(self):
-        return self
-
-    def __iadd__(self, other):
-        self.children.append(str(other))
-        return self
 
 
     def __exit__(self, type, value, traceback):
 
         if self.children:
             opening = "<{tag}>\n".format(tag=self.tag)
-            internal = "%s" % self.text
+            internal = ""
             for child in self.children:
-                internal += child + '\n'
+                internal += child
             ending = "</%s>" % self.tag
             data = opening + internal + ending
 
@@ -82,39 +89,11 @@ class HTML:
 
 
 
-class TopLevelTag:
-    def __init__(self, tag):
-        self.tag = tag
-        self.text = ""
-        self.children =[]
 
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        return self
-
-    def __iadd__(self, other):
-        self.children.append(str(other))
-        return self
-
-
-
-    def __str__(self):
-        if self.children:
-            opening = "<{tag}>\n".format(tag=self.tag)
-            internal = "%s" % self.text
-            for child in self.children:
-                internal += child
-            ending = "</%s>" % self.tag
-            return opening + internal + ending
-        else:
-            return "<{tag}>{text}</{tag}>".format(tag=self.tag, text=self.text)
 
 if __name__ == "__main__":
     #output=None результат печатается в конcоль, output='test.html' - резульат сохраняется в файл.
-    with HTML(output=None) as doc:
+    with HTML(output='test.html') as doc:
         with TopLevelTag("head") as head:
             with Tag("title") as title:
                 title.text = "hello"
